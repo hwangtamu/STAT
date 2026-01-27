@@ -6,7 +6,7 @@ Authors: [Yinghui He](https://ying-hui-he.github.io/), [Abhishek Panigrahi](http
 
 [Blog Post](https://ying-hui-he.github.io/Skill-Targeted-Adaptive-Training/) | [Arxiv](https://arxiv.org/abs/2510.10023) | [Twitter](https://x.com/yinghui_he_/status/1980257694704619679) | [Connect with authors](https://x.com/yinghui_he_)
 
-![STAT overview](Figures/STAT.png)
+![STAT overview](figures/STAT.png)
 
 🚨 We introduce **Skill-Targeted Adaptive Training (STAT)**, which uses a supervisor model and a skill catalog to construct a **Missing-Skill-Profile** for each student model, and then modifies training to squeeze out **>=7%** more performance! The intervention can be as simple as reweighting existing training sets. You can also think of this as a more effective distillation method.
 
@@ -21,6 +21,25 @@ Authors: [Yinghui He](https://ying-hui-he.github.io/), [Abhishek Panigrahi](http
 - [ ] Part 3: Training data creation code
 
 
+## Environment Setup
+We recommend using [uv](https://docs.astral.sh/uv/) for fast and reliable dependency management.
+
+### Install uv
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+### Setup environment
+```bash
+uv sync
+```
+
+This will automatically create a virtual environment and install all dependencies. To activate the environment:
+```bash
+source .venv/bin/activate  # On Unix/macOS
+# or
+.venv\Scripts\activate  # On Windows
+```
 
 ## Part 1: Skill-Targeted Training Data
 We conducted adaptive training data selection for three models: Llama-3.2-3B-Instruct, Llama-3.2-1B-Instruct, and Qwen2.5-3B. 
@@ -51,6 +70,32 @@ We create two sets of training data ([**`STAT-Sel/`**](STAT_data/STAT-Sel/) and 
 This process enables our approach to generate diverse data, as we input 3 questions to the teacher model as references each time. The consistency-filtering step filters out both invalid questions and solutions, ensuring the quality of STAT-Syn.
 
 ## Part 2: Model Training Code
+
+
+### Training
+To fine-tune a model on STAT data, run the corresponding training script:
+
+```bash
+# For Llama-3.2-3B-Instruct and Llama-3.2-1B-Instruct
+bash scripts/run_sft_llama_instruct.sh
+
+# For Qwen2.5-3B
+bash scripts/run_sft_qwen_base.sh
+```
+
+You can modify the `DATA_NAME` variable in the scripts to use either `STAT-Sel` or `STAT-Syn` datasets.
+
+### Evaluation
+To evaluate a fine-tuned model:
+
+```bash
+bash scripts/eval_sft.sh
+```
+
+Configure the evaluation by editing the script variables:
+- `BASE_MODEL_PATH`: The base model to evaluate
+- `TRAIN_DATA_NAME`: Which training data was used (`STAT-Sel` or `STAT-Syn`)
+- `TEST_DATA_NAME`: Test dataset (`math500`, `math2`, `gsm8k`, `math_perturb_simple`, `math_perturb_hard`, `amc23`, or `aime`)
 
 
 

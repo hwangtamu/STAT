@@ -29,7 +29,7 @@ def get_args():
     parser.add_argument("--output_dir", type=str, default="./sft")
     parser.add_argument("--output_filename", type=str, default="")
     parser.add_argument("--base_output_filename", type=str, default="")
-    parser.add_argument("--include_base_model", action="store_true")
+    parser.add_argument("--run_base_model", action="store_true")
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--num_test_samples", type=int, default=100)
     parser.add_argument("--temperature", type=float, default=0.1, help="generation temperature")
@@ -305,7 +305,7 @@ def main():
     output_path_base = os.path.join(config.OUTPUT_DIR, config.BASE_OUTPUT_FILENAME)
     output_path = os.path.join(config.OUTPUT_DIR, config.OUTPUT_FILENAME)
     
-    if (args.include_base_model and not os.path.exists(output_path_base)) or (not args.include_base_model and not os.path.exists(output_path)):
+    if (args.run_base_model and not os.path.exists(output_path_base)) or (not args.run_base_model and not os.path.exists(output_path)):
         print("\nLoading Base Model...")
         base_model = AutoModelForCausalLM.from_pretrained(
             config.BASE_MODEL_ID,
@@ -323,7 +323,7 @@ def main():
         base_model = None
         merged_model = None
 
-    if args.include_base_model:
+    if args.run_base_model:
         evaluate_model(base_model, tokenizer, test_dataset, config, config.BASE_OUTPUT_FILENAME, args.overwrite)
     
     # --- 2. Evaluate the Fine-Tuned Model ---

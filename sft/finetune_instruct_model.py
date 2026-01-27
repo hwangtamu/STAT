@@ -32,19 +32,23 @@ def get_args():
 # ---------------------------------------------------------------------------------
 def format_dataset_to_messages(examples):
     """
-    Formats a dataset with 'instruction', 'input', and 'output' columns
+    Formats a dataset with 'question', 'solution' columns
     into a list of messages suitable for a chat model.
     """
     formatted_texts = []
-    for i in range(len(examples['instruction'])):
-        instruction = examples['instruction'][i]
-        input_text = examples['input'][i]
-        output_text = examples['output'][i]
+    for i in range(len(examples['question'])):
+        instruction = "Please reason step by step, and put your final answer within \\boxed{{}}"
+        input_text = examples['question'][i]
+        output_text = examples['solution'][i]
 
-        # Concatenate instruction, input, and output directly for a base model
-        # You might add separators like "\n\n### Instruction:\n" if you prefer
-        text = f"{instruction}\n{input_text}\n{output_text}"
-        formatted_texts.append(text.strip())
+        # Use a system prompt if desired, otherwise format as user/assistant turns.
+        # This format is compatible with most instruction-tuned models.
+        messages = [
+            {"role": "user", "content": f"{instruction}\n{input_text}".strip()},
+            {"role": "assistant", "content": output_text}
+        ]
+        formatted_texts.append(messages)
+        
     return {"messages": formatted_texts}
 
 def main():
@@ -119,7 +123,7 @@ def main():
     # ---------------------------------------------------------------------------------
     # 3. Model Loading and Configuration
     # ---------------------------------------------------------------------------------
-    
+
     # Configure quantization
     if USE_QLORA:
         compute_dtype = BNB_4BIT_COMPUTE_DTYPE
@@ -141,6 +145,8 @@ def main():
     )
     base_model.config.use_cache = False
     base_model.config.pretraining_tp = 1
+
+    # --- START OF MODIFIED LOGIC ---
 
     # Configure LoRA for training
     if USE_QLORA:
@@ -167,8 +173,8 @@ def main():
         # If not using QLoRA/PEFT, the model is just the base model
         model = base_model
         peft_config = None
-    
-    # model.to('cuda')
+
+    # --- END OF MODIFIED LOGIC ---
 
     # ---------------------------------------------------------------------------------
     # 4. Training
@@ -229,9 +235,6 @@ def main():
     # Load the base model and tokenizer
     base_model = AutoModelForCausalLM.from_pretrained(args.model_id, torch_dtype=torch.bfloat16, device_map="auto")
     tokenizer = AutoTokenizer.from_pretrained(args.model_id)
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-        tokenizer.pad_token_id = tokenizer.eos_token_id
 
     # Load the PEFT model with the saved adapter
     model = PeftModel.from_pretrained(base_model, final_adapter_dir)
@@ -242,17 +245,17 @@ def main():
     # Create a text generation pipeline
     text_generator = pipeline("text-generation", model=model, tokenizer=tokenizer)
 
-    # Example prompt for a base model.
-    # The format here should ideally match the format you used during fine-tuning (e.g., "Prompt: X\nResponse: ").
-    # If your fine-tuning data was just raw text, then a simple prompt will lead to continuation.
-    prompt_for_inference = "Generate a short story about a brave knight and a wise dragon guarding an ancient artifact."
-    formatted_prompt = f"Story start: {prompt_for_inference}\n" # Example: matching a potential training format
+    # Example prompt
+    prompt = "What is the capital of France?"
+    
+    # Format the prompt using the chat template
+    messages = [{"role": "user", "content": prompt}]
+    formatted_prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
     
     sequences = text_generator(
         formatted_prompt,
-        max_new_tokens=250, # Increased for potentially longer generation from base models
+        max_new_tokens=100,
         do_sample=True,
-        temperature=0.7,   # Added temperature for more creative output
         top_k=50,
         top_p=0.95,
         num_return_sequences=1,
@@ -260,19 +263,10 @@ def main():
         pad_token_id=tokenizer.eos_token_id
     )
 
-    print(f"Input Prompt for Inference: {formatted_prompt}")
-    # For base models, the output typically starts right after the input.
-    # You might need to manually parse or split the generated text.
-    full_generated_text = sequences[0]['generated_text']
-    # Attempt to extract only the generated part after the input prompt
-    if full_generated_text.startswith(formatted_prompt):
-        assistant_response = full_generated_text[len(formatted_prompt):].strip()
-    else:
-        # Fallback if prefix matching is not perfect (e.g., due to tokenization oddities)
-        assistant_response = full_generated_text.strip()
-        print("Warning: Could not perfectly strip prompt from generated text.")
-
-    print(f"\nGenerated response:\n{assistant_response}")
+    print(f"Prompt: {prompt}")
+    # The output includes the prompt, so we extract just the generated part for clarity
+    assistant_response = sequences[0]['generated_text'].split("<|im_start|>assistant\n")[-1]
+    print(f"Generated response: {assistant_response}")
 
 if __name__ == "__main__":
     main()
