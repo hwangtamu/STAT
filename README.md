@@ -4,24 +4,25 @@ This is the official repository for the paper [**"Skill-Targeted Adaptive Traini
 Authors: [Yinghui He](https://ying-hui-he.github.io/), [Abhishek Panigrahi](https://abhishekpanigrahi1996.github.io/), [Yong Lin](https://linyongver.github.io/Website/), [Sanjeev Arora](https://www.cs.princeton.edu/~arora/).
 
 
+[Blog Post](https://ying-hui-he.github.io/Skill-Targeted-Adaptive-Training/) | [Arxiv](https://arxiv.org/abs/2510.10023) | [Twitter](https://x.com/yinghui_he_/status/1980257694704619679) | [Connect with authors](https://x.com/yinghui_he_)
+
 ![STAT overview](Figures/STAT.png)
 
 🚨 We introduce **Skill-Targeted Adaptive Training (STAT)**, which uses a supervisor model and a skill catalog to construct a **Missing-Skill-Profile** for each student model, and then modifies training to squeeze out **>=7%** more performance! The intervention can be as simple as reweighting existing training sets. You can also think of this as a more effective distillation method.
 
 
-[[Arxiv]](https://arxiv.org/abs/2510.10023) [[Twitter]](https://x.com/yinghui_he_/status/1980257694704619679) [[Connect with authors]](https://x.com/yinghui_he_)
 
 
 
 
 ## 💻 Release Checklist
 - [x] Part 1: Skill-targeted training data
-- [ ] Part 2: Training data creation code
-- [ ] Part 3: STAT models
+- [x] Part 2: Model training code
+- [ ] Part 3: Training data creation code
 
 
 
-## 🧩 Part 1: Skill-Targeted Training Data
+## Part 1: Skill-Targeted Training Data
 We conducted adaptive training data selection for three models: Llama-3.2-3B-Instruct, Llama-3.2-1B-Instruct, and Qwen2.5-3B. 
 The model-specific training data are provided under [**`STAT_data/`**](STAT_data/). Each dataset contain roughly 4k unique questions, 9.5k QA pairs.
 
@@ -49,9 +50,12 @@ We create two sets of training data ([**`STAT-Sel/`**](STAT_data/STAT-Sel/) and 
 
 This process enables our approach to generate diverse data, as we input 3 questions to the teacher model as references each time. The consistency-filtering step filters out both invalid questions and solutions, ensuring the quality of STAT-Syn.
 
+## Part 2: Model Training Code
+
+
 
 ## Issues & Questions
-If you have any questions on the code or the paper, feel free to email Yinghui (yh0068@princeton.edu). If you encounter any problems when using the code, or want to report a bug, please open an issue. We welcome all kinds of constructive discussions!
+If you have any questions on the code or the paper, feel free to email Yinghui (yh0068@princeton.edu). We welcome all kinds of constructive discussions!
 
 
 ## Citation
