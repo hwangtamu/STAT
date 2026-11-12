@@ -21,6 +21,7 @@ def get_args():
     parser.add_argument("--adapter_path", type=str, default=None, help="Path to the existing LoRA adapter to continue training.")
     parser.add_argument("--output_dir", type=str, default="./sft_results", help="Base directory to save the fine-tuned model and checkpoints.")
     parser.add_argument("--learning_rate", type=float, default=5e-6, help="The initial learning rate for the AdamW optimizer.")
+    parser.add_argument("--weight_decay", type=float, default=0.0, help="Weight decay for the AdamW optimizer.")
     parser.add_argument("--num_train_epochs", type=int, default=3, help="Total number of training epochs to perform.")
     parser.add_argument("--per_device_train_batch_size", type=int, default=2, help="Batch size per GPU/CPU for training.")
     parser.add_argument("--gradient_accumulation_steps", type=int, default=4, help="Number of updates steps to accumulate before performing a backward/update pass.")
@@ -188,6 +189,7 @@ def main():
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         optim=OPTIM,
         learning_rate=args.learning_rate,
+        weight_decay=args.weight_decay,
         lr_scheduler_type="cosine",
         save_strategy="steps",
         save_steps=SAVE_STEPS,

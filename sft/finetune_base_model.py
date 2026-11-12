@@ -21,6 +21,7 @@ def get_args():
     parser.add_argument("--adapter_path", type=str, default=None, help="Path to the existing LoRA adapter to continue training.")
     parser.add_argument("--output_dir", type=str, default="./sft_results", help="Base directory to save the fine-tuned model and checkpoints.")
     parser.add_argument("--learning_rate", type=float, default=5e-6, help="The initial learning rate for the AdamW optimizer.")
+    parser.add_argument("--weight_decay", type=float, default=0.0, help="Weight decay for the AdamW optimizer.")
     parser.add_argument("--num_train_epochs", type=int, default=3, help="Total number of training epochs to perform.")
     parser.add_argument("--per_device_train_batch_size", type=int, default=2, help="Batch size per GPU/CPU for training.")
     parser.add_argument("--gradient_accumulation_steps", type=int, default=4, help="Number of updates steps to accumulate before performing a backward/update pass.")
@@ -30,10 +31,10 @@ def get_args():
 # ---------------------------------------------------------------------------------
 # Data Formatting
 # ---------------------------------------------------------------------------------
-def format_dataset_to_messages(examples):
+def format_dataset_to_text(examples):
     """
     Formats a dataset with 'question', 'solution' columns
-    into a list of messages suitable for a chat model.
+    into plain training text for a base (non-chat) model.
     """
     formatted_texts = []
     for i in range(len(examples['question'])):
@@ -45,7 +46,7 @@ def format_dataset_to_messages(examples):
         # You might add separators like "\n\n### Instruction:\n" if you prefer
         text = f"{instruction}\n{input_text}\n{output_text}"
         formatted_texts.append(text.strip())
-    return {"messages": formatted_texts}
+    return {"text": formatted_texts}
 
 def main():
     args = get_args()
@@ -104,13 +105,10 @@ def main():
         tokenizer.pad_token = tokenizer.eos_token
         tokenizer.pad_token_id = tokenizer.eos_token_id
         
-    # Apply formatting and then the model-specific chat template
-    formatted_dataset = dataset.map(format_dataset_to_messages, batched=True)
-    
-    def apply_chat_template_func(examples):
-        return {"text": [tokenizer.apply_chat_template(msgs, tokenize=False) for msgs in examples["messages"]]}
-
-    final_dataset = formatted_dataset.map(apply_chat_template_func, batched=True, remove_columns=dataset.column_names)
+    # Base models are trained on the plain concatenated text. No chat template is applied:
+    # the template expects a list of role/content messages and, given a plain string,
+    # silently drops the question and solution.
+    final_dataset = dataset.map(format_dataset_to_text, batched=True, remove_columns=dataset.column_names)
 
     print("\n--- Sample of final formatted dataset ---")
     print(final_dataset[0]['text'])
@@ -182,6 +180,7 @@ def main():
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         optim=OPTIM,
         learning_rate=args.learning_rate,
+        weight_decay=args.weight_decay,
         lr_scheduler_type="cosine",
         save_strategy="steps",
         save_steps=SAVE_STEPS,
