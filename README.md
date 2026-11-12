@@ -34,7 +34,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
 ```
 
-This will automatically create a virtual environment and install all dependencies. To activate the environment:
+This will automatically create a virtual environment and install all dependencies (Python 3.10–3.12 is required; uv selects a suitable interpreter). To activate the environment:
 ```bash
 source .venv/bin/activate  # On Unix/macOS
 # or
@@ -83,7 +83,17 @@ bash scripts/run_sft_llama_instruct.sh
 bash scripts/run_sft_qwen_base.sh
 ```
 
-You can modify the `DATA_NAME` variable in the scripts to use either `STAT-Sel` or `STAT-Syn` datasets.
+You can modify the `DATA_NAME` variable in the scripts to use either `STAT-Sel` or `STAT-Syn` datasets. The variables can also be set from the command line, for example:
+
+```bash
+MODEL_PATH=meta-llama/Llama-3.2-1B-Instruct DATA_NAME=STAT-Syn LR=2e-5 WEIGHT_DECAY=0.1 bash scripts/run_sft_llama_instruct.sh
+```
+
+- `MODEL_PATH`: Hugging Face model ID (the Llama models are gated, so log in with `huggingface-cli login` first)
+- `DATA_NAME`: `STAT-Sel` or `STAT-Syn`
+- `LR`, `WEIGHT_DECAY`: learning rate and weight decay
+
+Training needs a CUDA GPU (4-bit QLoRA). It logs to Weights & Biases; set `WANDB_MODE=offline` to run without an account. The adapter is saved to `output/finetuned_adapters/<model>/sft_<data>_<model>/final_adapter`.
 
 ### Evaluation
 To evaluate a fine-tuned model:
@@ -92,10 +102,15 @@ To evaluate a fine-tuned model:
 bash scripts/eval_sft.sh
 ```
 
-Configure the evaluation by editing the script variables:
-- `BASE_MODEL_PATH`: The base model to evaluate
+Configure the evaluation by editing the script variables (or setting them from the command line, as above):
+- `BASE_MODEL_PATH`: The base model to evaluate (`meta-llama/Llama-3.2-3B-Instruct`, `meta-llama/Llama-3.2-1B-Instruct`, or `Qwen/Qwen2.5-3B`)
 - `TRAIN_DATA_NAME`: Which training data was used (`STAT-Sel` or `STAT-Syn`)
 - `TEST_DATA_NAME`: Test dataset (`math500`, `math2`, `gsm8k`, `math_perturb_simple`, `math_perturb_hard`, `amc23`, or `aime`)
+- `NUM_TEST_SAMPLES`: Number of test questions, taken from the start of the file (`-1` for the whole file)
+- `NUM_GENERATED_SAMPLES`, `TEMPERATURE`, `SEED`: Sampling settings; with more than one sample per question the script reports pass@k and average@k
+- `EVAL_BASE_MODEL`: Set to `true` to evaluate the untrained base model instead of the fine-tuned adapter
+
+Results are written to `output/evaluation_results/<model>/`. If a results file already exists, the script only re-grades the stored outputs; delete the file to generate again.
 
 
 
